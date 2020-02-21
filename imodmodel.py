@@ -158,16 +158,17 @@ for septin_count, contour in enumerate(model.get_object("septin").get_contours()
 			min_distance = distance
 			distance_vector = vector
 			nearest_tubule = tubule_position
-	print("Septin Number: ", septin_count)
-	print("Nearest Tubule: ", nearest_tubule)
-	print("Minimum distance: ", min_distance, "nm")
-	fig, ax = plt.subplots()
-	ax.plot(range(len(distance_vector)), distance_vector)
-	ax.set_ylabel("Distance (nm)")
-	ax.set_title("Distance between Septin {} and Tubule {}".format(septin_count, tubule_position))
-	plt.tight_layout()
-	fig.savefig("{}.png".format(septin_count))
-	print(distance_vector)
+	if min_distance<100:
+		print("Septin Number: ", septin_count)
+		print("Nearest Tubule: ", nearest_tubule)
+		print("Minimum distance: ", min_distance, "nm")
+		fig, ax = plt.subplots()
+		ax.plot(range(len(distance_vector)), distance_vector)
+		ax.set_ylabel("Distance (nm)")
+		ax.set_title("Distance between Septin {} and Tubule {}".format(septin_count, tubule_position))
+		plt.tight_layout()
+		fig.savefig("{}.png".format(septin_count))
+		print(distance_vector)
 
 	# print(distance_vector)
 
