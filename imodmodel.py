@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import splprep, splev
 from matplotlib import pyplot as plt
+from sys import argv
 
 
 class IMODModel():
@@ -147,7 +148,7 @@ def load_from_modfile(filename):
 
 	
 
-model = load_from_modfile("_data/July29_TS7_SeptinMT.mod")
+model = load_from_modfile(argv[1])
 for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
 	distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(20, len(contour.interpolated_vertices)-20)]
 	# print(distances)
