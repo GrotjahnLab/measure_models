@@ -65,7 +65,7 @@ class IMODContour():
 			# TODO - FIGURE OUT HOW TO MAKE THIS NOT HAVE ROUNDING ERRORS
 			x,y,z = zip(*self.original_vertices)
 			if len(x) > 3:
-				tck,u = splprep([x,y,z], k=3)
+				tck,u = splprep([x,y,z], k=1)
 			else:
 				tck,u = splprep([x,y,z], k=1)
 			
@@ -149,6 +149,10 @@ def load_from_modfile(filename):
 
 model = load_from_modfile("_data/July29_TS7_SeptinMT.mod")
 for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
+	distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(20, len(contour.interpolated_vertices)-20)]
+	# print(distances)
+	plt.hist(distances, bins=30)
+	plt.show()
 	min_distance = 10000
 	nearest_tubule = None
 	# distance_vector=[10000 for i in contour.interpolated_vertices]
@@ -168,6 +172,10 @@ for septin_count, contour in enumerate(model.get_object("septin").get_contours()
 		ax.set_title("Distance between Septin {} and Tubule {}".format(septin_count, tubule_position))
 		plt.tight_layout()
 		fig.savefig("{}.png".format(septin_count))
+		fig2,ax2=plt.subplots()
+		ax2.set_title("Histogram of Distances between Septin {} and Tubule {}".format(septin_count, tubule_position))
+		ax2.hist(distance_vector)
+		fig2.savefig("{}_histogram.png".format(septin_count))
 		print(distance_vector)
 
 	# print(distance_vector)
