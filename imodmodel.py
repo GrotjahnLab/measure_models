@@ -156,7 +156,21 @@ for filename in file_list:
 	prefix = filename.split("/")[-1].split(".")[0]
 	print(prefix)
 	model = load_from_modfile(filename)
+	keys = model.get_objects().keys()
+	if not "septin" in keys:
+		print("Model {} does not have a septin object - skipping".format(filename))
+		continue
+	if len(model.get_object("septin").get_contours()) == 0:
+		print("Model {} does not have any septin contours - skipping".format(filename))
+		continue
+	if not "microtubule" in keys:
+		print("Model {} does not have a microtubule object - skipping".format(filename))
+		continue
+	if len(model.get_object("microtubule").get_contours()) == 0:
+		print("Model {} does not have any microtubule contours - skipping".format(filename))
+		continue
 	total_distances_per_model = []
+
 	for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
 		distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(20, len(contour.interpolated_vertices)-20)]
 		# print(distances)
