@@ -83,6 +83,8 @@ class IMODContour():
 		else:
 			vertices_self = self.original_vertices
 			vertices_other = other_contour.original_vertices
+		if len(vertices_self) == 0 or len(vertices_other) == 0:
+			return [10000,10000,10000], 10000
 		distance_vector = [min([np.linalg.norm(np.subtract(i,j)) for j in vertices_other]) for i in vertices_self]
 		min_distance = min(distance_vector)
 		return distance_vector, min_distance
@@ -179,6 +181,7 @@ for filename in file_list:
 		# plt.show()
 		min_distance = 10000
 		nearest_tubule = None
+		distance_vector = [10000,10000,10000]
 		# distance_vector=[10000 for i in contour.interpolated_vertices]
 		for tubule_position, tubule_contour in enumerate(model.get_object("microtubule").get_contours()):
 			vector, distance = contour.contour_nearest_distance(tubule_contour)
