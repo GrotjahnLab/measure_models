@@ -2,6 +2,7 @@ import numpy as np
 from scipy.interpolate import splprep, splev
 from matplotlib import pyplot as plt
 from sys import argv
+import glob
 
 
 class IMODModel():
@@ -148,37 +149,60 @@ def load_from_modfile(filename):
 
 	
 
-model = load_from_modfile(argv[1])
-for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
-	distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(20, len(contour.interpolated_vertices)-20)]
-	# print(distances)
-	plt.hist(distances, bins=30)
-	plt.show()
-	min_distance = 10000
-	nearest_tubule = None
-	# distance_vector=[10000 for i in contour.interpolated_vertices]
-	for tubule_position, tubule_contour in enumerate(model.get_object("microtubule").get_contours()):
-		vector, distance = contour.contour_nearest_distance(tubule_contour)
-		if distance < min_distance:
-			min_distance = distance
-			distance_vector = vector
-			nearest_tubule = tubule_position
-	if min_distance<100:
-		print("Septin Number: ", septin_count)
-		print("Nearest Tubule: ", nearest_tubule)
-		print("Minimum distance: ", min_distance, "nm")
-		fig, ax = plt.subplots()
-		ax.plot(range(len(distance_vector)), distance_vector)
-		ax.set_ylabel("Distance (nm)")
-		ax.set_title("Distance between Septin {} and Tubule {}".format(septin_count, tubule_position))
-		plt.tight_layout()
-		fig.savefig("{}.png".format(septin_count))
-		fig2,ax2=plt.subplots()
-		ax2.set_title("Histogram of Distances between Septin {} and Tubule {}".format(septin_count, tubule_position))
-		ax2.hist(distance_vector)
-		fig2.savefig("{}_histogram.png".format(septin_count))
-		print(distance_vector)
+model_folder = argv[1]
+file_list = glob.glob("{}/*.mod".format(model_folder))
+total_distances = []
+for filename in file_list:
+	prefix = filename.split("/")[-1].split(".")[0]
+	print(prefix)
+	model = load_from_modfile(filename)
+	total_distances_per_model = []
+	for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
+		distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(20, len(contour.interpolated_vertices)-20)]
+		# print(distances)
+		# plt.title(septin_count+1)
+		# plt.hist(distances, bins=30)
+		# plt.show()
+		min_distance = 10000
+		nearest_tubule = None
+		# distance_vector=[10000 for i in contour.interpolated_vertices]
+		for tubule_position, tubule_contour in enumerate(model.get_object("microtubule").get_contours()):
+			vector, distance = contour.contour_nearest_distance(tubule_contour)
+			if distance < min_distance:
+				min_distance = distance
+				distance_vector = vector
+				nearest_tubule = tubule_position
+		if min_distance<100:
+			total_distances.extend(distance_vector)
+			total_distances_per_model.extend(distance_vector)
+			print("Septin Number: ", septin_count+1)
+			print("Nearest Tubule: ", nearest_tubule+1)
+			print("Minimum distance: ", min_distance, "nm")
+			fig, ax = plt.subplots()
+			ax.plot(range(len(distance_vector)), distance_vector)
+			ax.set_ylabel("Distance (nm)")
+			ax.set_title("Distance between Septin {} and Tubule {}".format(septin_count+1, tubule_position+1))
+			plt.tight_layout()
+			fig.savefig("{}_{}.svg".format(prefix, septin_count+1))
+			fig2,ax2=plt.subplots()
+			ax2.set_title("Histogram of Distances between Septin {} and Tubule {}".format(septin_count+1, tubule_position+1))
+			ax2.hist(distance_vector,bins=range(0, 100, 4))
+			fig2.savefig("{}_{}_histogram.svg".format(prefix, septin_count+1))
+			print(distance_vector)
 
+	fig3,ax3 = plt.subplots()
+	ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
+	ax3.set_ylabel("Count of 1nm stretches of septin")
+	ax3.set_xlabel("Septin-MT distance (nm)")
+	ax3.hist(total_distances_per_model, bins=range(0, 100, 4))
+	fig3.savefig("Total_histogram_{}.svg".format(prefix))
+
+fig3,ax3 = plt.subplots()
+ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
+ax3.set_ylabel("Count of 1nm stretches of septin")
+ax3.set_xlabel("Septin-MT distance (nm)")
+ax3.hist(total_distances, bins=range(0, 100, 2))
+fig3.savefig("Total_histogram.svg")
 	# print(distance_vector)
 
 
