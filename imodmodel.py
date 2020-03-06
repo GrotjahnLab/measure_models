@@ -3,8 +3,8 @@ from scipy.interpolate import splprep, splev
 from matplotlib import pyplot as plt
 from sys import argv
 import glob
-
-
+FILTER_DISTANCE = 100
+INTERPOLATION_PERIOD = 4
 class IMODModel():
 	"""Top level model class for data from IMOD"""
 	def __init__(self, name, pixel_size, model_range_tuple, offset_tuple):
@@ -43,7 +43,7 @@ class IMODObject():
 
 class IMODContour():
 	"""Contour class for data from IMOD"""
-	def __init__(self, vertices, interpolate=True, interpolation_period_nm=1):
+	def __init__(self, vertices, interpolate=True, interpolation_period_nm=INTERPOLATION_PERIOD):
 		self.original_vertices=vertices
 		self.calculate_length_nm()
 		if interpolate:
@@ -138,7 +138,7 @@ def load_from_modfile(filename):
 						if not oldvertex == vertex:
 							vertices.append(vertex)
 							oldvertex = vertex
-					newobject.add_contour(IMODContour(vertices, interpolate=True, interpolation_period_nm=1))
+					newobject.add_contour(IMODContour(vertices, interpolate=True, interpolation_period_nm=INTERPOLATION_PERIOD))
 				newline = next(iterator)
 
 	return model
@@ -189,7 +189,7 @@ for filename in file_list:
 				min_distance = distance
 				distance_vector = vector
 				nearest_tubule = tubule_position
-		if min_distance<100:
+		if min_distance<FILTER_DISTANCE:
 			total_distances.extend(distance_vector)
 			total_distances_per_model.extend(distance_vector)
 			print("Septin Number: ", septin_count+1)
@@ -203,20 +203,26 @@ for filename in file_list:
 			fig.savefig("{}_{}.svg".format(prefix, septin_count+1))
 			fig2,ax2=plt.subplots()
 			ax2.set_title("Histogram of Distances between Septin {} and Tubule {}".format(septin_count+1, tubule_position+1))
+			ax2.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
+			ax3.set_xlabel("Septin-MT distance (nm)")
 			ax2.hist(distance_vector,bins=range(0, 100, 4))
 			fig2.savefig("{}_{}_histogram.svg".format(prefix, septin_count+1))
 			print(distance_vector)
+		else:
+			print("Septin Number: ", septin_count+1)
+			print("No MT within {}nm".format(FILTER_DISTANCE))
 
 	fig3,ax3 = plt.subplots()
 	ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
-	ax3.set_ylabel("Count of 1nm stretches of septin")
+	ax3.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
 	ax3.set_xlabel("Septin-MT distance (nm)")
 	ax3.hist(total_distances_per_model, bins=range(0, 100, 4))
 	fig3.savefig("Total_histogram_{}.svg".format(prefix))
+	plt.close('all')
 
 fig3,ax3 = plt.subplots()
 ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
-ax3.set_ylabel("Count of 1nm stretches of septin")
+ax3.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
 ax3.set_xlabel("Septin-MT distance (nm)")
 ax3.hist(total_distances, bins=range(0, 100, 2))
 fig3.savefig("Total_histogram.svg")
