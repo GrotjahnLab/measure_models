@@ -30,6 +30,7 @@ for filename in file_list:
 	total_distances_per_model = []
 	total_min_distances_per_model = []
 	for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
+
 		distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(len(contour.interpolated_vertices)-1)]
 		distances_accrued = [sum(distances[0:i]) for i in range(len(distances)+1)]
 		# print(len(distances), len(distances_accrued))
@@ -95,8 +96,8 @@ fig,ax = plt.subplots()
 ax.set_title("Histograms of minimum septin-septin distances for all pairs")
 ax.set_ylabel("Count of filament-filament distances".format(INTERPOLATION_PERIOD))
 ax.set_xlabel("Septin-Septin distance (nm)")
-ax.hist(total_min_distances_per_model, bins=range(0, 100, 4))
-fig.savefig("Septin_total_min_histogram_{}.svg".format(prefix))
+ax.hist(total_min_distances, bins=range(0, 100, 4))
+fig.savefig("Septin_total_min_histogram.svg")
 
 fig3,ax3 = plt.subplots()
 ax3.set_title("Histograms of septin-septin distances for all\n septins that come within {}nm of another septin".format(FILTER_DISTANCE))
