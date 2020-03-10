@@ -3,7 +3,7 @@ from scipy.interpolate import splprep, splev
 from matplotlib import pyplot as plt
 from sys import argv
 import glob
-FILTER_DISTANCE = 100
+FILTER_DISTANCE = 50
 INTERPOLATION_PERIOD = 4
 class IMODModel():
 	"""Top level model class for data from IMOD"""
@@ -151,7 +151,15 @@ def main():
 	model_folder = argv[1]
 	file_list = glob.glob("{}/*.mod".format(model_folder))
 	total_distances = []
+	sum_distance =0
+	sum_distance_nearby = 0
+	near_mt_count = 0
+	septin_total_count = 0
+	microtubule_total_count = 0
 	for filename in file_list:
+		near_mt_count_file = 0
+		sum_distance_per_file = 0
+		sum_distance_nearby_per_file = 0
 		prefix = filename.split("/")[-1].split(".")[0]
 		print(prefix)
 		model = load_from_modfile(filename)
@@ -162,23 +170,23 @@ def main():
 		if len(model.get_object("septin").get_contours()) == 0:
 			print("Model {} does not have any septin contours - skipping".format(filename))
 			continue
+		septin_total_count_per_file = len(model.get_object("septin").get_contours())
+		septin_total_count += septin_total_count_per_file
 		if not "microtubule" in keys:
 			print("Model {} does not have a microtubule object - skipping".format(filename))
 			continue
 		if len(model.get_object("microtubule").get_contours()) == 0:
 			print("Model {} does not have any microtubule contours - skipping".format(filename))
 			continue
+		microtubule_total_count_per_file = len(model.get_object("microtubule").get_contours())
+		microtubule_total_count += microtubule_total_count_per_file
 		total_distances_per_model = []
 
 		for septin_count, contour in enumerate(model.get_object("septin").get_contours()):
 			distances = [np.linalg.norm(np.subtract(contour.interpolated_vertices[i+1],contour.interpolated_vertices[i])) for i in range(len(contour.interpolated_vertices)-1)]
 			distances_accrued = [sum(distances[0:i]) for i in range(len(distances)+1)]
-			# print(len(distances), len(distances_accrued))
-			# print(distances_accrued)
-			# print(distances)
-			# plt.title(septin_count+1)
-			# plt.hist(distances, bins=30)
-			# plt.show()
+			sum_distance_per_septin = distances_accrued[-1]
+			sum_distance_per_file += sum_distance_per_septin
 			min_distance = 10000
 			nearest_tubule = None
 			distance_vector = [10000,10000,10000]
@@ -190,11 +198,17 @@ def main():
 					distance_vector = vector
 					nearest_tubule = tubule_position
 			if min_distance<FILTER_DISTANCE:
+				near_mt_count += 1
+				near_mt_count_file +=1
+				sum_distance_nearby_per_septin = sum([j for i,j in enumerate(distances) if distance_vector[i]<FILTER_DISTANCE])
+				sum_distance_nearby_per_file += sum_distance_per_septin
 				total_distances.extend(distance_vector)
 				total_distances_per_model.extend(distance_vector)
 				print("Septin Number: ", septin_count+1)
 				print("Nearest Tubule: ", nearest_tubule+1)
 				print("Minimum distance: ", min_distance, "nm")
+				print("Total Length of Septin: ", sum_distance_per_septin, "nm")
+				print("Length of Septin within {}nm of MT {}: {}nm".format(FILTER_DISTANCE, nearest_tubule+1, sum_distance_nearby_per_septin))
 				fig, ax = plt.subplots()
 				ax.plot(distances_accrued, distance_vector)
 				ax.set_ylim(0,300)
@@ -207,27 +221,46 @@ def main():
 				ax2.set_title("Histogram of Distances between Septin {} and Tubule {}".format(septin_count+1, tubule_position+1))
 				ax2.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
 				ax3.set_xlabel("Septin-MT distance (nm)")
+				print("{}nm out of {}nm total septin is within {}nm of microtubule {}".format(sum_distance_nearby_per_septin, sum_distance_per_septin, FILTER_DISTANCE, tubule_position+1))
 				ax2.hist(distance_vector,bins=range(0, 100, 4))
+				ax2.set_xticks([0,10,20,30,40,50,60,70,80,90,100])
+				ax2.set_xlabel("Distance (nm)")
+
 				fig2.savefig("{}_{}_histogram.svg".format(prefix, septin_count+1))
 				print(distance_vector)
+
 			else:
+				sum_distance_nearby_per_septin = 0
 				print("Septin Number: ", septin_count+1)
 				print("No MT within {}nm".format(FILTER_DISTANCE))
 
+
+
 		fig3,ax3 = plt.subplots()
-		ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
+		ax3.set_title("Histograms of septin-MT distances for all\n septins that come within {}nm of an MT".format(FILTER_DISTANCE))
 		ax3.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
 		ax3.set_xlabel("Septin-MT distance (nm)")
 		ax3.hist(total_distances_per_model, bins=range(0, 100, 4))
+		ax3.set_xticks([0,10,20,30,40,50,60,70,80,90,100])
+		ax3.set_xlabel("Distance (nm)")
 		fig3.savefig("Total_histogram_{}.svg".format(prefix))
 		plt.close('all')
+		print("For Model {}, {} out of {} septins are within {}nm of one of the {} microtubules".format(prefix, near_mt_count, septin_total_count_per_file, FILTER_DISTANCE, microtubule_total_count_per_file))
+		print("For Model {}, {}nm out of {}nm total septin are within {}nm of a microtubule".format(prefix, sum_distance_nearby_per_file, sum_distance_per_file, FILTER_DISTANCE))
+		sum_distance += sum_distance_per_file
+		sum_distance_nearby += sum_distance_nearby_per_file
 
 	fig3,ax3 = plt.subplots()
-	ax3.set_title("Histograms of septin-MT distances for all\n septins that come within 100nm of an MT")
+	ax3.set_title("Histograms of septin-MT distances for all\n septins that come within {}nm of an MT".format(FILTER_DISTANCE))
 	ax3.set_ylabel("Count of {}nm stretches of septin".format(INTERPOLATION_PERIOD))
 	ax3.set_xlabel("Septin-MT distance (nm)")
 	ax3.hist(total_distances, bins=range(0, 100, 2))
+	ax3.set_xticks([0,10,20,30,40,50,60,70,80,90,100])
+	ax3.set_xlabel("Distance (nm)")
+
 	fig3.savefig("Total_histogram.svg")
+	print("Overall, {} out of {} septins are within {}nm of one of {} microtubules".format(near_mt_count, septin_total_count, FILTER_DISTANCE, microtubule_total_count))
+	print("Overall, {}nm out of {}nm total septin is within {}nm of a microtubule".format(sum_distance_nearby, sum_distance, FILTER_DISTANCE))
 		# print(distance_vector)
 
 if __name__=="__main__":
